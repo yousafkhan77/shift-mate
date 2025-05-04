@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "ShiftMate",
+    "slug": "shift-mate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/shift-mate-logo-c.png",
+    "scheme": "shiftmate",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/shift-mate-logo.png",
+        "backgroundColor": "#1364FF"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash.png",
+          "imageWidth": 190,
+          "resizeMode": "contain",
+          "backgroundColor": "#1364FF"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
