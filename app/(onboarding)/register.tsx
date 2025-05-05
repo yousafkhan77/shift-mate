@@ -1,73 +1,57 @@
-import React, { useState } from "react";
 import { useRegisterUserMutation } from "@/api/authentication";
 import Box from "@/components/Box";
 import Button from "@/components/Button";
 import { useForm } from "@/components/Form";
+import KeyboardAvoidingView from "@/components/KeyboardAvoidingView";
 import TextInput from "@/components/TextInput";
-// import { updateAuth } from "@/redux/slices/auth";
-// import { updateStore, updateToastMessage } from "@/redux/slices/common";
-// import { useTypedDispatch } from "@/redux/store";
-import { isAndroid, validationRules } from "@/utils";
-// import AsyncStorage from "@react-native-async-storage/async-storage";
+import { updateStore } from "@/redux/slices/common";
+import { useTypedDispatch } from "@/redux/store";
+import { isAndroid } from "@/utils";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native";
 import { Text, useTheme } from "react-native-paper";
-import KeyboardAvoidingView from "@/components/KeyboardAvoidingView";
+import * as Yup from "yup";
+
+const DATA = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  password: "",
+  phone: "",
+};
+
+const SCHEMA = {
+  firstName: Yup.string().required("First name is required."),
+  lastName: Yup.string().required("Last name is required."),
+  email: Yup.string()
+    .email("Email is not valid.")
+    .required("Email is required."),
+  password: Yup.string().required("Password is required."),
+  phone: Yup.string().required("Mobile number is required."),
+};
 
 const OnboardingRegister = () => {
   const theme = useTheme();
-  // const dispatch = useTypedDispatch();
-  // const [phone, setPhone] = useState("");
+  const dispatch = useTypedDispatch();
   const [registerUser, { isLoading }] = useRegisterUserMutation();
 
   const { errors, handleChange, handleFoucs, handleSubmit } = useForm({
-    initialValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      phone: "",
-    },
-    validationRules: validationRules({
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      phone: "",
-    }),
+    initialValues: DATA,
+    validationSchema: Yup.object().shape(SCHEMA),
     onSubmit: (values: any) => {
-      router.replace("/(tabs)");
-      // const result = schema.safeParse(values);
-      // if (!result.success) {
-      //   const errObj: { [key: string]: string } = {};
-      //   result.error.errors.forEach((err) => {
-      //     errObj[err.path[0]] = err.message;
-      //   });
-      //   setErrors(errObj);
-      // } else {
-      //   const fin: any = {
-      //     ...result.data,
-      //   };
-      //   if (phone) {
-      //     fin.contact = "+1" + phone.replace(/\s+/g, "");
-      //   }
-      //   registerUser(fin).then((res: any) => {
-      //     if (res.data) {
-      //       dispatch(updateStore({ key: "user", value: res.data }));
-      //       dispatch(updateAuth(res.data.token));
-      //       if (isOnboarding) {
-      //         AsyncStorage.setItem("onboarding-completed", "true");
-      //         // router.replace("/(tabs)");
-      //       } else {
-      //         router.dismiss();
-      //       }
-      //     } else {
-      //       dispatch(
-      //         updateToastMessage({ type: "error", message: res.error.data.error })
-      //       );
-      //     }
-      //   });
-      // }
+      registerUser({
+        ...values,
+        phone: "+92" + values.phone.replace(/\s+/g, ""),
+        email: values.email.toLowerCase(),
+      }).then((res: any) => {
+        if (!res.error) {
+          const { accessToken, refreshToken, ...user } = res.data;
+          dispatch(updateStore({ key: "user", value: user }));
+          dispatch(updateStore({ key: "access-token", value: accessToken }));
+          dispatch(updateStore({ key: "refresh-token", value: refreshToken }));
+          router.replace("/(tabs)");
+        }
+      });
     },
   });
 
@@ -103,14 +87,14 @@ const OnboardingRegister = () => {
             <TextInput
               label="First Name"
               onChangeText={handleChange("firstName")}
-              helperText="First name is required."
+              helperText={errors.firstName}
               error={Boolean(errors.firstName)}
               onFocus={handleFoucs("firstName")}
             />
             <TextInput
               label="Last Name"
               onChangeText={handleChange("lastName")}
-              helperText="Last name is required."
+              helperText={errors.lastName}
               error={Boolean(errors.lastName)}
               onFocus={handleFoucs("lastName")}
             />
@@ -129,7 +113,7 @@ const OnboardingRegister = () => {
               keyboardType="numeric"
               maxLength={10}
               onFocus={handleFoucs("phone")}
-              helperText="Mobile number is required."
+              helperText={errors.phone}
               error={Boolean(errors.phone)}
             />
             <TextInput
@@ -137,7 +121,7 @@ const OnboardingRegister = () => {
               autoCapitalize="none"
               keyboardType="email-address"
               onChangeText={handleChange("email")}
-              helperText="Email address is required."
+              helperText={errors.email}
               error={Boolean(errors.email)}
               onFocus={handleFoucs("email")}
             />
@@ -147,7 +131,7 @@ const OnboardingRegister = () => {
                 secureTextEntry
                 autoCapitalize="none"
                 onChangeText={handleChange("password")}
-                helperText="Password is required."
+                helperText={errors.password}
                 error={Boolean(errors.password)}
                 onFocus={handleFoucs("password")}
               />
