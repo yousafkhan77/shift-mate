@@ -1,39 +1,113 @@
-import React from "react";
+import {
+  useEmailCheckMutation,
+  useUpdateUserMutation,
+  useUpdateUserPasswordMutation,
+} from "@/api/authentication";
 import Box from "@/components/Box";
 import { useForm } from "@/components/Form";
 import IconButton from "@/components/IconButton";
 import TextInput from "@/components/TextInput";
-import { validationRules } from "@/utils";
+import useAsyncStorage from "@/hooks/useAsyncStorage";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Platform, SafeAreaView } from "react-native";
-import { Text } from "react-native-paper";
+import { ActivityIndicator, Text } from "react-native-paper";
+import Toast from "react-native-toast-message";
+import * as Yup from "yup";
+
+const NAME_SCHEMA = {
+  firstName: Yup.string().required("First name is required."),
+  lastName: Yup.string().required("Last name is required."),
+};
+
+const PASSWORD_SCHEMA = {
+  password: Yup.string().required("Current password is required."),
+  newPassword: Yup.string()
+    .required("New password is required.")
+    .notOneOf(
+      [Yup.ref("password")],
+      "New password must be different from current password."
+    ),
+};
+
+const OTHER_SCHEMA = {
+  email: {
+    email: Yup.string()
+      .email("Email is not valid.")
+      .required("Email is required."),
+  },
+  phone: {
+    phone: Yup.string().required("Mobile number is required."),
+  },
+};
 
 const EditProfile = () => {
-  const { label, propertyKey, value } = useLocalSearchParams();
+  const { label, propertyKey } = useLocalSearchParams();
+  const [user, setUser] = useAsyncStorage("user");
+  const [updatePassword, { isLoading: isUpdating }] =
+    useUpdateUserPasswordMutation();
+  const [updateUser, { isLoading }] = useUpdateUserMutation();
+  const [emailCheck, { isLoading: isCheckingEmail }] = useEmailCheckMutation();
+
+  const onUpdate = (values: any) => {
+    updateUser(values).then((res: any) => {
+      if (!res.error) {
+        setUser({ ...user, ...values });
+        Toast.show({
+          type: "tomatoToast",
+          text1: res.data.message,
+        });
+        router.back();
+      }
+    });
+  };
 
   const { values, errors, handleChange, handleFoucs, handleSubmit } = useForm({
-    initialValues:
+    initialValues: !user
+      ? {}
+      : propertyKey === "name"
+      ? {
+          firstName: user.firstName,
+          lastName: user.lastName,
+        }
+      : propertyKey === "password"
+      ? { password: "", newPassword: "" }
+      : { [propertyKey as "name"]: user[propertyKey as any] },
+    validationSchema: Yup.object().shape(
       propertyKey === "name"
-        ? {
-            firstName: (value as any).split(" ")[0],
-            lastName: (value as any).split(" ")[1],
-          }
+        ? NAME_SCHEMA
         : propertyKey === "password"
-        ? { password: "", newPassword: "" }
-        : { [propertyKey as "name"]: value },
-    validationRules: validationRules(
-      propertyKey === "name"
-        ? {
-            firstName: "",
-            lastName: "",
-          }
-        : propertyKey === "password"
-        ? { password: "", newPassword: "" }
-        : { [propertyKey as "name"]: "" }
+        ? PASSWORD_SCHEMA
+        : OTHER_SCHEMA[propertyKey as "email"]
     ),
     onSubmit: (values: any) => {
-      router.back();
+      if (propertyKey === "password") {
+        updatePassword({ password: values.newPassword }).then((res: any) => {
+          if (!res.error) {
+            Toast.show({
+              type: "tomatoToast",
+              text1: res.data.message,
+            });
+            router.back();
+          }
+        });
+      } else {
+        if (propertyKey === "email") {
+          if (values.email !== user.email) {
+            emailCheck(values).then((emailRes: any) => {
+              if (!emailRes.error) onUpdate(values);
+            });
+          } else {
+            router.back();
+          }
+        } else {
+          if (values.phone) {
+            values.phone =
+              "+92" + values.phone.replace("+92", "").replace(/\s+/g, "");
+          }
+          onUpdate(values);
+        }
+      }
     },
   });
 
@@ -59,9 +133,13 @@ const EditProfile = () => {
               {label}
             </Text>
           </Box>
-          <IconButton onPress={handleSubmit}>
-            <Feather name="check" size={22} color="black" />
-          </IconButton>
+          {isLoading || isCheckingEmail || isUpdating ? (
+            <ActivityIndicator size="small" />
+          ) : (
+            <IconButton onPress={handleSubmit}>
+              <Feather name="check" size={22} color="black" />
+            </IconButton>
+          )}
         </Box>
         <Box gap={2}>
           {propertyKey === "name" ? (
@@ -69,7 +147,7 @@ const EditProfile = () => {
               <TextInput
                 label="First Name"
                 onChangeText={handleChange("firstName")}
-                helperText="First name is required."
+                helperText={errors.firstName}
                 error={Boolean(errors.firstName)}
                 defaultValue={values.firstName}
                 onFocus={handleFoucs("firstName")}
@@ -77,7 +155,7 @@ const EditProfile = () => {
               <TextInput
                 label="Last Name"
                 onChangeText={handleChange("lastName")}
-                helperText="Last name is required."
+                helperText={errors.lastName}
                 error={Boolean(errors.lastName)}
                 defaultValue={values.lastName}
                 onFocus={handleFoucs("lastName")}
@@ -89,7 +167,7 @@ const EditProfile = () => {
               autoCapitalize="none"
               keyboardType="email-address"
               onChangeText={handleChange("email")}
-              helperText="Email address is required."
+              helperText={errors.email}
               error={Boolean(errors.email)}
               onFocus={handleFoucs("email")}
               defaultValue={values.email}
@@ -107,7 +185,7 @@ const EditProfile = () => {
               keyboardType="numeric"
               maxLength={10}
               onFocus={handleFoucs("phone")}
-              helperText="Mobile number is required."
+              helperText={errors.phone}
               error={Boolean(errors.phone)}
             />
           ) : propertyKey === "password" ? (
@@ -117,7 +195,7 @@ const EditProfile = () => {
                 secureTextEntry
                 autoCapitalize="none"
                 onChangeText={handleChange("password")}
-                helperText="Current password is required."
+                helperText={errors.password}
                 error={Boolean(errors.password)}
                 onFocus={handleFoucs("password")}
               />
@@ -126,7 +204,7 @@ const EditProfile = () => {
                 secureTextEntry
                 autoCapitalize="none"
                 onChangeText={handleChange("newPassword")}
-                helperText="New password is required."
+                helperText={errors.newPassword}
                 error={Boolean(errors.newPassword)}
                 defaultValue={values.newPassword}
                 onFocus={handleFoucs("newPassword")}
