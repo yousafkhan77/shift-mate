@@ -1,12 +1,19 @@
-import BaseButton from "@/components/BaseButton";
 import Box from "@/components/Box";
 import IconButton from "@/components/IconButton";
+import useAsyncStorage from "@/hooks/useAsyncStorage";
 import { lightShadowProps } from "@/utils";
 import { Feather, Octicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
 import { Platform, SafeAreaView } from "react-native";
 import { Text, useTheme } from "react-native-paper";
+
+const UserDetails = [
+  { label: "Name", propertyKey: "name", value: "John Doe" },
+  { label: "Email", propertyKey: "email", value: "johndoe@gmail.com" },
+  { label: "Password", propertyKey: "password", value: "............" },
+  { label: "Mobile number", propertyKey: "phone", value: "+923434343434" },
+];
 
 const DetailItem = ({ label, value, onPress }: any) => {
   return (
@@ -30,15 +37,9 @@ const DetailItem = ({ label, value, onPress }: any) => {
   );
 };
 
-const UserDetails = [
-  { label: "Name", propertyKey: "name", value: "John Doe" },
-  { label: "Email", propertyKey: "email", value: "johndoe@gmail.com" },
-  { label: "Password", propertyKey: "password", value: "............" },
-  { label: "Mobile number", propertyKey: "phone", value: "+923434343434" },
-];
-
 const Profile = () => {
   const theme = useTheme();
+  const [user] = useAsyncStorage("user");
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: (theme.colors as any).lightGrey }}
@@ -74,7 +75,15 @@ const Profile = () => {
               <DetailItem
                 key={ud.propertyKey}
                 label={ud.label}
-                value={ud.value}
+                value={
+                  user && ud.propertyKey !== "password"
+                    ? ud.propertyKey === "name"
+                      ? `${user.firstName} ${user.lastName}`
+                      : user[ud.propertyKey]
+                    : ud.propertyKey === "password"
+                    ? ud.value
+                    : ""
+                }
                 onPress={() =>
                   router.push({
                     pathname: "/editProfile",
