@@ -1,22 +1,23 @@
-import { getToken } from "@/redux/slices/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
-  createApi,
-  fetchBaseQuery,
   BaseQueryFn,
+  createApi,
   FetchArgs,
+  fetchBaseQuery,
   FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 
-export const baseURL = "http://localhost:9600/api";
+// export const baseURL = "http://localhost:9600/api";
+export const baseURL =
+  "https://shift-mate-backend-production.up.railway.app/api";
 export const MAIN_API_REDUCER_KEY = "mainApi";
 
 const baseQuery = fetchBaseQuery({
   baseUrl: baseURL,
   prepareHeaders: async (headers) => {
-    const token = await getToken();
-
+    const token = await AsyncStorage.getItem("access-token");
     if (token) {
-      // headers.set("ATKN", token);
+      headers.set("auth-token", token);
     }
 
     return headers;
@@ -42,7 +43,7 @@ const baseQueryWithReauth: BaseQueryFn<
 
 const api = createApi({
   reducerPath: MAIN_API_REDUCER_KEY,
-  tagTypes: [],
+  tagTypes: ["Address", "DefaultAddress"],
   baseQuery: baseQueryWithReauth,
   keepUnusedDataFor: 30,
   endpoints: () => ({}),
