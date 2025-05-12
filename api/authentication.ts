@@ -4,7 +4,15 @@ export const authApi = api.injectEndpoints({
   endpoints: (build) => ({
     registerUser: build.mutation<any, User>({
       query: (body) => ({
-        url: `/registerUser.php`,
+        url: `/users/register`,
+        method: "POST",
+        body,
+      }),
+    }),
+
+    emailCheck: build.mutation<any, Partial<User>>({
+      query: (body) => ({
+        url: `/users/email-check`,
         method: "POST",
         body,
       }),
@@ -12,7 +20,7 @@ export const authApi = api.injectEndpoints({
 
     loginUser: build.mutation<any, Partial<User>>({
       query: (body) => ({
-        url: `/loginUser.php`,
+        url: `/users/login`,
         method: "POST",
         body,
       }),
@@ -20,28 +28,17 @@ export const authApi = api.injectEndpoints({
 
     updateUser: build.mutation<any, Partial<User>>({
       query: (body) => ({
-        url: `/updateUser.php`,
-        method: "POST",
+        url: `/users/update`,
+        method: "PUT",
         body,
       }),
     }),
 
     updateUserPassword: build.mutation<any, PostUpdateUserPasswordPayload>({
       query: (body) => ({
-        url: `/updateUserPassword.php`,
-        method: "POST",
+        url: `/users/reset-password-auth`,
+        method: "PUT",
         body,
-      }),
-    }),
-
-    uploadUserImage: build.mutation<any, any>({
-      query: (body) => ({
-        url: `/uploadUserImage.php`,
-        method: "POST",
-        body,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
       }),
     }),
   }),
@@ -53,8 +50,8 @@ export const {
   useRegisterUserMutation,
   useLoginUserMutation,
   useUpdateUserMutation,
-  useUploadUserImageMutation,
   useUpdateUserPasswordMutation,
+  useEmailCheckMutation,
 } = authApi;
 
 export type User = {
@@ -62,11 +59,9 @@ export type User = {
   lastName: string;
   email: string;
   password: string;
-  contact?: string | null;
+  phone?: string;
 };
 
 export type PostUpdateUserPasswordPayload = {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
+  password: string;
 };
