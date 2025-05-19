@@ -1,7 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/api/authentication";
 
 interface Toast {
   message: string;
