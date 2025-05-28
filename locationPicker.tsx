@@ -1,6 +1,7 @@
 import {
   Location,
   useAddAddressMutation,
+  useLazySearchCoordinatesQuery,
   useSearchLocationQuery,
   useUpdateAddressMutation,
 } from "@/api";
@@ -11,10 +12,12 @@ import Button from "@/components/Button";
 import IconButton from "@/components/IconButton";
 import SearchInput from "@/components/SearchInput";
 import useDebounce from "@/hooks/useDebounce";
+import { getCurrentLocation, isAndroid } from "@/utils";
 import { AntDesign, Octicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   DeviceEventEmitter,
   Dimensions,
   Image,
@@ -44,12 +47,18 @@ const LocationPicker = () => {
   const mapRef = useRef<MapView | null>(null);
   const theme = useTheme<AppTheme>();
   const safeAreaInsets = useSafeAreaInsets();
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [locLoading, setLocLoading] = useState(false);
   const [expand, setExpand] = useState(!defaultLocation);
   const [query, setQuery] = useState("");
   const [location, setLoaction] = useState<Location | null>(
-    defaultLocation ? JSON.parse(defaultLocation as any) : null
+    defaultLocation && defaultLocation !== "current"
+      ? JSON.parse(defaultLocation as any)
+      : null
   );
   const deferredQuery = useDebounce(query, 500);
+  const [searchCoordinates, { isFetching: isSearching }] =
+    useLazySearchCoordinatesQuery();
   const [addAddress, { isLoading: isAdding }] = useAddAddressMutation();
   const [updateAddress, { isLoading: isUpdating }] = useUpdateAddressMutation();
   const { currentData: locations = [], isFetching } = useSearchLocationQuery(
@@ -61,25 +70,60 @@ const LocationPicker = () => {
     }
   );
 
+  const getDefaultLocation = async () => {
+    setExpand(true);
+    setLocLoading(true);
+    const loc = await getCurrentLocation();
+    setLocLoading(false);
+    if (!loc) {
+      Alert.alert(
+        "Location Permission Error",
+        "Location access denied. To use your current location, please enable location permissions in your settings."
+      );
+    } else {
+      searchCoordinates(`${loc.coords.latitude},${loc.coords.longitude}`).then(
+        (res: any) => {
+          if (res.data && res.data.length > 0) {
+            setQuery("");
+            setExpand(false);
+            setLoaction(res.data[0]);
+          }
+        }
+      );
+    }
+  };
+
   useEffect(() => {
+    if (defaultLocation === "current" && !location) {
+      getDefaultLocation();
+    }
+
     setTimeout(() => {
       if (ref.current) ref.current.show();
     }, 300);
   }, []);
 
   useEffect(() => {
-    if (location && mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: Number(location.coordinates.lat),
-          longitude: Number(location.coordinates.lon),
-          latitudeDelta: 0.00125,
-          longitudeDelta: 0.00125,
-        },
-        500
-      );
+    if (location && isMapReady) {
+      const onFit = () => {
+        if (mapRef.current)
+          mapRef.current.animateToRegion(
+            {
+              latitude: Number(location.coordinates.lat),
+              longitude: Number(location.coordinates.lon),
+              latitudeDelta: 0.00125,
+              longitudeDelta: 0.00125,
+            },
+            500
+          );
+      };
+      if (isAndroid) {
+        setTimeout(onFit, 200);
+      } else {
+        onFit();
+      }
     }
-  }, [location]);
+  }, [location, isMapReady]);
 
   const onSave = () => {
     if (!location) return;
@@ -203,6 +247,7 @@ const LocationPicker = () => {
         </Box>
         <MapView
           ref={mapRef}
+          onMapReady={() => setIsMapReady(true)}
           style={{
             width: "100%",
             height: "100%",
@@ -221,10 +266,7 @@ const LocationPicker = () => {
       </Box>
       <BottomSheet
         ref={ref}
-        initialSnapIndex={Platform.select({
-          android: addressID ? 1 : 0,
-          ios: 1,
-        })}
+        initialSnapIndex={1}
         snapPoints={[15, 100]}
         closable={false}
         isModal={false}
@@ -234,7 +276,7 @@ const LocationPicker = () => {
           gap={2}
           minHeight={Platform.select({
             ios: addressID ? height * 0.18 : height * 0.15,
-            android: addressID ? height * 0.26 : height * 0.22,
+            android: addressID ? height * 0.32 : height * 0.265,
           })}
         >
           <Box px={3} gap={2} pt={1}>
@@ -288,6 +330,7 @@ const LocationPicker = () => {
             ) : (
               <SearchInput
                 autoFocus
+                readOnly={isSearching || locLoading}
                 autoCorrect={false}
                 autoCapitalize="none"
                 autoComplete="off"
@@ -308,7 +351,7 @@ const LocationPicker = () => {
                 showsVerticalScrollIndicator={false}
                 renderItem={renderItem}
                 ListEmptyComponent={
-                  isFetching ? (
+                  isFetching || isSearching || locLoading ? (
                     <Box
                       minHeight={300}
                       justifyContent="center"
@@ -344,7 +387,11 @@ const LocationPicker = () => {
                           ? `We couldn't find this address. Check and try again.`
                           : "Enter an address to add as a pickup or dropoff location"}
                       </Text>
-                      <Button textColor={theme.colors.iconGrey} mode="text">
+                      <Button
+                        onPress={getDefaultLocation}
+                        textColor={theme.colors.iconGrey}
+                        mode="text"
+                      >
                         Use my current location
                       </Button>
                     </Box>
