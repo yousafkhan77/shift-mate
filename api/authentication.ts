@@ -54,14 +54,39 @@ export const {
   useEmailCheckMutation,
 } = authApi;
 
+export type Vehicle = {
+  vehicleType: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleColor: string;
+  vehicleYear: string;
+  vehicleImage: string;
+  registrationNumber: string;
+};
+
+export type Driver = {
+  licenceNumber?: string;
+  licenceExpiration?: string;
+  licenceFront?: string;
+  licenceBack?: string;
+  idCardBack?: string;
+  idCardFront?: string;
+  idCardNumber?: string;
+  selfieWithID?: string;
+};
+
 export type User = {
   firstName: string;
   lastName: string;
   email: string;
+  dob?: string;
   password: string;
+  image?: string;
   phone?: string;
-};
+} & Driver &
+  Vehicle;
 
 export type PostUpdateUserPasswordPayload = {
   password: string;
+  newPassword: string;
 };
