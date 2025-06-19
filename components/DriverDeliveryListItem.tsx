@@ -1,5 +1,6 @@
 import { Delivery } from "@/api/delivery";
 import { AppTheme } from "@/app/_layout";
+import { LoactionOptionsMap } from "@/utils";
 import moment from "moment";
 import React from "react";
 import { Text, useTheme } from "react-native-paper";
@@ -20,6 +21,7 @@ const DriverDeliveryListItem = ({
   deliveryState,
   isBooking,
   createdAt,
+  locationType,
 }: DriverDeliveryListItemProps) => {
   const theme = useTheme<AppTheme>();
   return (
@@ -41,6 +43,11 @@ const DriverDeliveryListItem = ({
             <Box direction="row" alignItems="center" gap={1}>
               <Text variant="titleMedium" style={{ fontFamily: "SatoshiBold" }}>
                 Delivery
+                {locationType && !isBooking
+                  ? ` (${
+                      LoactionOptionsMap[locationType]?.label ?? locationType
+                    })`
+                  : ""}
               </Text>
               {deliveryState && (
                 <Box
