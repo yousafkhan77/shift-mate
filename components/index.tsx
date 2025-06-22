@@ -17,7 +17,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import React, { useRef } from "react";
 import { SafeAreaView, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Text, useTheme } from "react-native-paper";
 import * as Yup from "yup";
 import { AppTheme } from "../_layout";
@@ -78,12 +77,14 @@ const OnboardingRegister = () => {
               if (!res.error) {
                 const { accessToken, refreshToken, ...user } = res.data;
                 if (user.type === "driver") {
+                  AsyncStorage.setItem("access-token", accessToken);
+                  AsyncStorage.setItem("refresh-token", refreshToken);
                   router.replace({
                     pathname: "/verification",
                     params: {
+                      ...user,
                       accessToken,
                       refreshToken,
-                      type: user.type,
                     },
                   });
                 } else {
@@ -103,133 +104,127 @@ const OnboardingRegister = () => {
   return (
     <>
       <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
-        <KeyboardAwareScrollView
-          showsVerticalScrollIndicator={false}
-          bottomOffset={62}
+        <Box
+          flex={1}
+          px={3}
+          gap={3}
+          pt={isAndroid ? 28 / 4 : 4}
+          justifyContent="space-between"
         >
-          <Box
-            flex={1}
-            px={3}
-            gap={3}
-            pt={isAndroid ? 28 / 4 : 4}
-            justifyContent="space-between"
-          >
-            <Box gap={2.5}>
-              <Box gap={0.675}>
-                <Text
-                  variant="displaySmall"
-                  style={{
-                    fontFamily: "SatoshiBold",
-                  }}
-                >
-                  Let's get started!
-                </Text>
-                <Text
-                  variant="bodyLarge"
-                  style={{
-                    fontFamily: "Satoshi",
-                  }}
-                >
-                  Fill in your details to setup your account.
-                </Text>
-              </Box>
-              <BaseButton
-                onPress={() => {
-                  if (ref.current) ref.current.show();
+          <Box gap={2.5}>
+            <Box gap={0.675}>
+              <Text
+                variant="displaySmall"
+                style={{
+                  fontFamily: "SatoshiBold",
                 }}
               >
-                <View style={{ pointerEvents: "none" }}>
-                  <TextInput
-                    label="Account Type"
-                    value={
-                      ACCOUNT_TYPES.find((at) => at.value === values.type)
-                        ?.label
-                    }
-                    right={
-                      <Box pr={1.25}>
-                        <MaterialIcons
-                          name="unfold-more"
-                          size={20}
-                          color="black"
-                        />
-                      </Box>
-                    }
-                    helperText={errors.type}
-                    error={Boolean(errors.type)}
-                    onFocus={handleFoucs("type")}
-                  />
-                </View>
-              </BaseButton>
-              <TextInput
-                label="First Name"
-                onChangeText={handleChange("firstName")}
-                helperText={errors.firstName}
-                error={Boolean(errors.firstName)}
-                onFocus={handleFoucs("firstName")}
-              />
-              <TextInput
-                label="Last Name"
-                onChangeText={handleChange("lastName")}
-                helperText={errors.lastName}
-                error={Boolean(errors.lastName)}
-                onFocus={handleFoucs("lastName")}
-              />
-              <TextInput
-                label="Mobile Number"
-                left={
-                  <Box pl={1.25}>
-                    <Text variant="labelLarge">+92</Text>
-                  </Box>
-                }
-                // onChangeText={(v) => {
-                //   setPhone(v);
-                //   // setPhone(formatPhoneNumber(v));
-                // }}
-                onChangeText={handleChange("phone")}
-                keyboardType="numeric"
-                maxLength={10}
-                onFocus={handleFoucs("phone")}
-                helperText={errors.phone}
-                error={Boolean(errors.phone)}
-              />
-              <TextInput
-                label="Email"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                onChangeText={handleChange("email")}
-                helperText={errors.email}
-                error={Boolean(errors.email)}
-                onFocus={handleFoucs("email")}
-              />
-              <Box gap={1.25}>
-                <TextInput
-                  label="Password"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  onChangeText={handleChange("password")}
-                  helperText={errors.password}
-                  error={Boolean(errors.password)}
-                  onFocus={handleFoucs("password")}
-                />
-                <Button
-                  style={{ alignSelf: "flex-end" }}
-                  textColor={theme.colors.primary}
-                  onPress={() => {
-                    router.push("/login");
-                  }}
-                >
-                  Already have an account? Login
-                </Button>
-              </Box>
+                Let's get started!
+              </Text>
+              <Text
+                variant="bodyLarge"
+                style={{
+                  fontFamily: "Satoshi",
+                }}
+              >
+                Fill in your details to setup your account.
+              </Text>
             </Box>
-            <AuthButton
-              onPress={handleSubmit}
-              loading={isLoading || isCheckingEmail}
+            <BaseButton
+              onPress={() => {
+                if (ref.current) ref.current.show();
+              }}
             >
-              Register
-            </AuthButton>
+              <View style={{ pointerEvents: "none" }}>
+                <TextInput
+                  label="Account Type"
+                  value={
+                    ACCOUNT_TYPES.find((at) => at.value === values.type)?.label
+                  }
+                  right={
+                    <Box pr={1.25}>
+                      <MaterialIcons
+                        name="unfold-more"
+                        size={20}
+                        color="black"
+                      />
+                    </Box>
+                  }
+                  helperText={errors.type}
+                  error={Boolean(errors.type)}
+                  onFocus={handleFoucs("type")}
+                />
+              </View>
+            </BaseButton>
+            <TextInput
+              label="First Name"
+              onChangeText={handleChange("firstName")}
+              helperText={errors.firstName}
+              error={Boolean(errors.firstName)}
+              onFocus={handleFoucs("firstName")}
+            />
+            <TextInput
+              label="Last Name"
+              onChangeText={handleChange("lastName")}
+              helperText={errors.lastName}
+              error={Boolean(errors.lastName)}
+              onFocus={handleFoucs("lastName")}
+            />
+            <TextInput
+              label="Mobile Number"
+              left={
+                <Box pl={1.25}>
+                  <Text variant="labelLarge">+92</Text>
+                </Box>
+              }
+              // onChangeText={(v) => {
+              //   setPhone(v);
+              //   // setPhone(formatPhoneNumber(v));
+              // }}
+              onChangeText={handleChange("phone")}
+              keyboardType="numeric"
+              maxLength={10}
+              onFocus={handleFoucs("phone")}
+              helperText={errors.phone}
+              error={Boolean(errors.phone)}
+            />
+            <TextInput
+              label="Email"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              onChangeText={handleChange("email")}
+              helperText={errors.email}
+              error={Boolean(errors.email)}
+              onFocus={handleFoucs("email")}
+            />
+            <Box gap={1.25}>
+              <TextInput
+                label="Password"
+                secureTextEntry
+                autoCapitalize="none"
+                onChangeText={handleChange("password")}
+                helperText={errors.password}
+                error={Boolean(errors.password)}
+                onFocus={handleFoucs("password")}
+              />
+              <Button
+                style={{ alignSelf: "flex-end" }}
+                textColor={theme.colors.primary}
+                onPress={() => {
+                  router.push("/login");
+                }}
+              >
+                Already have an account? Login
+              </Button>
+            </Box>
           </Box>
-        </KeyboardAwareScrollView>
+          <AuthButton
+            onPress={handleSubmit}
+            loading={isLoading || isCheckingEmail}
+          >
+            Register
+          </AuthButton>
+        </Box>
       </SafeAreaView>
       <OptionsBottomSheet
         ref={ref}
