@@ -3,14 +3,19 @@ import BaseButton from "@/components/BaseButton";
 import Box from "@/components/Box";
 import Button from "@/components/Button";
 import IconButton from "@/components/IconButton";
+import { EmptyShiftingView } from "@/components/ShiftingListing";
 import { Feather, Octicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { FlatList, Platform, SafeAreaView } from "react-native";
+import { Dimensions, FlatList, Platform, SafeAreaView } from "react-native";
 import { ActivityIndicator, Text, useTheme } from "react-native-paper";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppTheme } from "./_layout";
 
+const { height } = Dimensions.get("window");
+
 const Addresses = () => {
+  const insets = useSafeAreaInsets();
   const theme = useTheme<AppTheme>();
   const { data: addresses = [], isFetching } = useGetAddressesQuery(undefined);
   return (
@@ -18,7 +23,7 @@ const Addresses = () => {
       <Box
         flex={1}
         pt={Platform.select({ ios: 2, android: 5.5 })}
-        pb={Platform.select({ ios: 0, android: 2.5 })}
+        pb={Platform.select({ ios: 0, android: insets.bottom / 6 })}
         gap={3}
       >
         <Box px={2.5} direction="row" alignItems="center" gap={3}>
@@ -114,6 +119,11 @@ const Addresses = () => {
                   </Box>
                 </BaseButton>
               )}
+              ListEmptyComponent={
+                <Box height={height / 1.25}>
+                  <EmptyShiftingView message="No addresses found" />
+                </Box>
+              }
             />
           )}
         </Box>
